@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CentsSchema, IdSchema, IsoDateSchema } from "./common.js";
+import { CentsSchema, IdSchema, ImageKeySchema, IsoDateSchema } from "./common.js";
 
 export const NotificationSchema = z.object({
   id: IdSchema,
@@ -26,7 +26,7 @@ export const FavoriteSchema = z.object({
   kind: z.enum(["product", "service"]),
   itemId: IdSchema,
   name: z.string(),
-  image: z.string(),
+  image: ImageKeySchema,
   priceCents: CentsSchema,
   rating: z.number(),
   meta: z.string(),

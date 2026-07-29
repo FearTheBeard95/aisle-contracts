@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   ProductCardSchema, ServiceCardSchema, OrderStageSchema, BookingStatusSchema,
-  ApiErrorSchema, CartLineSchema,
+  ApiErrorSchema, CartLineSchema, SignUpSchema, VerifyCodeSchema, MerchantSignUpSchema,
+  ApprovalStatusSchema, SlotStateSchema, RepeatSchema, DayHoursSchema, SubscriptionSchema,
+  ConversationTurnSchema, PlanLimitDetailsSchema,
 } from "../src/index.js";
 
 describe("dto schemas", () => {
@@ -48,6 +50,144 @@ describe("dto schemas", () => {
     expect(() => CartLineSchema.parse({
       id: "l1", productId: "aro", name: "Aro", variant: "Graphite", qty: 0,
       unitPriceCents: 24800, lineTotalCents: 0, image: "chair",
+    })).toThrow();
+  });
+});
+
+describe("auth dto schemas", () => {
+  const validSignUp = {
+    name: "Ada Lovelace", email: "ada@example.com", password: "sup3rsecret", acceptedTerms: true as const,
+  };
+
+  it("accepts a valid signup", () => {
+    expect(SignUpSchema.parse(validSignUp).email).toBe("ada@example.com");
+  });
+
+  it("rejects a signup password with no digit", () => {
+    expect(() => SignUpSchema.parse({ ...validSignUp, password: "nodigitshere" })).toThrow();
+  });
+
+  it("rejects a signup password under 8 characters", () => {
+    expect(() => SignUpSchema.parse({ ...validSignUp, password: "a1b2c3" })).toThrow();
+  });
+
+  it("rejects a signup with acceptedTerms false", () => {
+    expect(() => SignUpSchema.parse({ ...validSignUp, acceptedTerms: false })).toThrow();
+  });
+
+  it("rejects a signup with a malformed email", () => {
+    expect(() => SignUpSchema.parse({ ...validSignUp, email: "not-an-email" })).toThrow();
+  });
+
+  it("accepts exactly a 6-digit verification code", () => {
+    expect(VerifyCodeSchema.parse({ email: "ada@example.com", code: "123456" }).code).toBe("123456");
+  });
+
+  it("rejects a 5-digit verification code", () => {
+    expect(() => VerifyCodeSchema.parse({ email: "ada@example.com", code: "12345" })).toThrow();
+  });
+
+  it("rejects a 7-digit verification code", () => {
+    expect(() => VerifyCodeSchema.parse({ email: "ada@example.com", code: "1234567" })).toThrow();
+  });
+
+  const validMerchantSignUp = {
+    businessName: "Fade & Co.", ownerName: "Ada Lovelace", email: "ada@example.com",
+    password: "sup3rsecret", offerType: "services" as const, acceptedTerms: true as const,
+  };
+
+  it("rejects an invalid merchant signup offerType", () => {
+    expect(() => MerchantSignUpSchema.parse({ ...validMerchantSignUp, offerType: "widgets" })).toThrow();
+  });
+
+  it("rejects a merchant signup with acceptedTerms false", () => {
+    expect(() => MerchantSignUpSchema.parse({ ...validMerchantSignUp, acceptedTerms: false })).toThrow();
+  });
+});
+
+describe("enum dto schemas", () => {
+  it("rejects an unknown merchant approval status", () => {
+    expect(() => ApprovalStatusSchema.parse("banned")).toThrow();
+  });
+
+  it("rejects an unknown slot state", () => {
+    expect(() => SlotStateSchema.parse("free")).toThrow();
+  });
+
+  it("rejects an unknown repeat cadence", () => {
+    expect(() => RepeatSchema.parse("weekly")).toThrow();
+  });
+
+  it("rejects an unknown day-hours day", () => {
+    expect(() => DayHoursSchema.shape.day.parse("Funday")).toThrow();
+  });
+
+  it("rejects an unknown conversation turn type", () => {
+    expect(() => ConversationTurnSchema.parse({
+      id: "t1", role: "agent", type: "video", createdAt: "2026-08-01T20:30:00.000Z",
+    })).toThrow();
+  });
+});
+
+describe("subscription dto schema", () => {
+  const validSubscription = {
+    plan: "aisle" as const,
+    cycle: "monthly" as const,
+    periodStart: "2026-08-01T00:00:00.000Z",
+    periodEnd: "2026-09-01T00:00:00.000Z",
+    usage: { bookingsThisPeriod: 3, services: 2, team: 1 },
+    pendingPlan: null,
+    cardBrand: "Visa",
+    cardLast4: "4242",
+    invoices: [],
+  };
+
+  it("rejects an unknown subscription plan id", () => {
+    expect(() => SubscriptionSchema.parse({ ...validSubscription, plan: "enterprise" })).toThrow();
+  });
+
+  it("accepts a null pendingPlan", () => {
+    expect(SubscriptionSchema.parse(validSubscription).pendingPlan).toBeNull();
+  });
+});
+
+describe("PlanLimitDetailsSchema", () => {
+  it("parses a valid capability branch", () => {
+    const parsed = PlanLimitDetailsSchema.parse({
+      kind: "capability", capability: "insights", plan: "counter", requiredPlan: "aisle",
+    });
+    expect(parsed.kind).toBe("capability");
+  });
+
+  it("rejects a capability branch missing requiredPlan", () => {
+    expect(() => PlanLimitDetailsSchema.parse({
+      kind: "capability", capability: "insights", plan: "counter",
+    })).toThrow();
+  });
+
+  it("parses a valid quantity branch", () => {
+    const parsed = PlanLimitDetailsSchema.parse({
+      kind: "quantity", limit: "services", cap: 5, used: 5, plan: "counter", requiredPlan: "aisle",
+    });
+    expect(parsed.kind).toBe("quantity");
+  });
+
+  it("rejects a quantity branch missing cap and used", () => {
+    expect(() => PlanLimitDetailsSchema.parse({
+      kind: "quantity", limit: "services", plan: "counter", requiredPlan: "aisle",
+    })).toThrow();
+  });
+
+  it("parses a valid bookingCap branch", () => {
+    const parsed = PlanLimitDetailsSchema.parse({
+      kind: "bookingCap", cap: 20, used: 20, plan: "counter", requiredPlan: "aisle",
+    });
+    expect(parsed.kind).toBe("bookingCap");
+  });
+
+  it("rejects a bookingCap branch missing used", () => {
+    expect(() => PlanLimitDetailsSchema.parse({
+      kind: "bookingCap", cap: 20, plan: "counter", requiredPlan: "aisle",
     })).toThrow();
   });
 });

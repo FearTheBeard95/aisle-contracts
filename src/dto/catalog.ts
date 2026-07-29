@@ -40,7 +40,7 @@ export const ServiceCardSchema = z.object({
   reviewCount: z.number().int().nonnegative(),
   distanceMiles: z.number().nonnegative(),
   fromPriceCents: CentsSchema,
-  image: z.string(),
+  image: ImageKeySchema,
   slots: z.array(SlotSchema),
 });
 export type ServiceCard = z.infer<typeof ServiceCardSchema>;

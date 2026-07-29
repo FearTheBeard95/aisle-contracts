@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AddOnSchema } from "./catalog.js";
-import { CentsSchema, IdSchema, IsoDateSchema } from "./common.js";
+import { CentsSchema, IdSchema, ImageKeySchema, IsoDateSchema } from "./common.js";
 
 export const BookingStatusSchema = z.enum([
   "pending", "confirmed", "declined", "cancelled", "expired", "done",
@@ -15,7 +15,7 @@ export const BookingSchema = z.object({
   reference: z.string().regex(/^AI-\d{4,}$/),
   merchantId: IdSchema,
   merchantName: z.string(),
-  merchantImage: z.string(),
+  merchantImage: ImageKeySchema,
   addressLine: z.string(),
   addressCity: z.string(),
   distanceMiles: z.number().nonnegative(),

@@ -17,19 +17,34 @@ export const ApiErrorSchema = z.object({
   error: z.object({
     code: ApiErrorCodeSchema,
     message: z.string(),
+    /** When `code` is `"PLAN_LIMIT"`, this conforms to `PlanLimitDetailsSchema`. */
     details: z.unknown().optional(),
   }),
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
 /** Shape of `details` when code is PLAN_LIMIT, so the console can pick its panel. */
-export const PlanLimitDetailsSchema = z.object({
-  kind: z.enum(["capability", "quantity", "bookingCap"]),
-  capability: z.string().optional(),
-  limit: z.string().optional(),
-  cap: z.number().optional(),
-  used: z.number().optional(),
-  plan: z.string(),
-  requiredPlan: z.string().optional(),
-});
+export const PlanLimitDetailsSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("capability"),
+    capability: z.string(),
+    plan: z.string(),
+    requiredPlan: z.string(),
+  }),
+  z.object({
+    kind: z.literal("quantity"),
+    limit: z.string(),
+    cap: z.number(),
+    used: z.number(),
+    plan: z.string(),
+    requiredPlan: z.string(),
+  }),
+  z.object({
+    kind: z.literal("bookingCap"),
+    cap: z.number(),
+    used: z.number(),
+    plan: z.string(),
+    requiredPlan: z.string(),
+  }),
+]);
 export type PlanLimitDetails = z.infer<typeof PlanLimitDetailsSchema>;
