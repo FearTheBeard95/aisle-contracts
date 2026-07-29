@@ -10,12 +10,14 @@ export type Plan = {
   annualCents: number;
   /** Transaction fee in basis points: 400 = 4%. */
   feeBps: number;
+  /** Quantity limits; `Infinity` means unlimited. WARNING: `Infinity` serialises to `null` via JSON.stringify — consumers must map it through an explicit sentinel before sending over the wire. */
   limits: Record<QuantityLimit, number>;
   capabilities: Record<Capability, boolean>;
 };
 
 export const PLAN_ORDER: PlanId[] = ["counter", "aisle", "frontage"];
 
+/** Plan matrix — single source of truth for pricing, fees, and entitlements. WARNING: limit values use `Infinity` for unlimited; this serialises to `null` in JSON — consumers must map it explicitly. */
 export const PLANS: Record<PlanId, Plan> = {
   counter: {
     id: "counter",

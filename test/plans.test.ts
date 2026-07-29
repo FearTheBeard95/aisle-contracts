@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   PLANS, PLAN_ORDER, planAllows, planLimit, requiredPlanFor, isUpgrade,
+  BOOKING_CAP_WARN_AT, USAGE_METER_ACCENT_AT,
 } from "../src/plans.js";
 
 describe("plan matrix", () => {
@@ -52,5 +53,13 @@ describe("plan matrix", () => {
     expect(isUpgrade("counter", "aisle")).toBe(true);
     expect(isUpgrade("frontage", "aisle")).toBe(false);
     expect(isUpgrade("aisle", "aisle")).toBe(false);
+  });
+
+  it("warns the merchant at PRD SUB-06 threshold (75% of booking cap)", () => {
+    expect(BOOKING_CAP_WARN_AT).toBe(0.75);
+  });
+
+  it("accents usage meters at PRD SUB-02 threshold (90% of any cap)", () => {
+    expect(USAGE_METER_ACCENT_AT).toBe(0.9);
   });
 });
