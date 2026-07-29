@@ -1,15 +1,23 @@
+/**
+ * Color palette. Accessibility constraints:
+ * - `accent` (#ec3013) fails WCAG AA for body text; use `accent700` for small text.
+ * - `neutral600` (#7d7979) measures 4.30:1 contrast and is only safe for large/bold text; use `neutral700` for small secondary copy.
+ */
 export const COLORS = {
   bg: "#f3f2f2",
   surface: "#eae9e9",
   text: "#201e1d",
+  /** Primary action color. ⚠️ Fails WCAG AA at body text sizes; use accent700 for small text. */
   accent: "#ec3013",
   accent100: "#fff2ef",
   accent700: "#ae1800",
   accent800: "#7c1405",
-  divider: "#d8d5d4",
+  /** Divider and border lines: 40% ink over background, composites over any surface. React Native uses rgba form; web may use color-mix. */
+  divider: "rgba(32,30,29,0.4)",
   neutral300: "#d7d3d3",
   neutral400: "#bab6b6",
   neutral500: "#9b9797",
+  /** ⚠️ 4.30:1 contrast; safe only for large or bold text. Use neutral700 for small secondary copy. */
   neutral600: "#7d7979",
   neutral700: "#605d5d",
   neutral800: "#444141",

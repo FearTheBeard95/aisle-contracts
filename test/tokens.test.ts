@@ -10,7 +10,10 @@ describe("tokens", () => {
     expect(COLORS.accent100).toBe("#fff2ef");
     expect(COLORS.accent700).toBe("#ae1800");
     expect(COLORS.accent800).toBe("#7c1405");
-    expect(COLORS.divider).toBe("#d8d5d4");
+    expect(COLORS.divider).toBe("rgba(32,30,29,0.4)");
+    expect(COLORS.neutral300).toBe("#d7d3d3");
+    expect(COLORS.neutral400).toBe("#bab6b6");
+    expect(COLORS.neutral500).toBe("#9b9797");
     expect(COLORS.neutral600).toBe("#7d7979");
     expect(COLORS.neutral700).toBe("#605d5d");
     expect(COLORS.neutral800).toBe("#444141");
