@@ -17,7 +17,7 @@ export function classifyIntent(text: string): Intent {
   return "product";
 }
 
-const PRICE_CONSTRAINT = /\b(?:under|below|less than|no more than|max(?:imum)?)\s*\$?\s*(\d{1,7}(?:,\d{3})*(?:\.\d+)?)\b/i;
+const PRICE_CONSTRAINT = /\b(?:under|below|less than|no more than|max(?:imum)?)\s*\$?\s*((?:\d{1,7}|\d{1,3},\d{3}|\d,\d{3},\d{3})(?:\.\d+)?(?![,\d]))\b/i;
 
 /** Returns the max price in **cents**, or null when the text sets no constraint. */
 export function parsePriceConstraint(text: string): number | null {

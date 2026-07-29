@@ -68,4 +68,18 @@ describe("parsePriceConstraint", () => {
   it("rounds half-up when more than two decimal places", () => {
     expect(parsePriceConstraint("under $9.999")).toBe(1000);
   });
+
+  it("enforces 7-digit cap with and without separators", () => {
+    expect(parsePriceConstraint("under $1,234,567")).toBe(123456700);
+    expect(parsePriceConstraint("under $1234567")).toBe(123456700);
+  });
+
+  it("rejects amounts with more than 7 digits before decimal", () => {
+    expect(parsePriceConstraint("under $12,345,678")).toBeNull();
+    expect(parsePriceConstraint("under $12,345,678,901")).toBeNull();
+  });
+
+  it("rejects malformed thousands separators", () => {
+    expect(parsePriceConstraint("under $1,2,3")).toBeNull();
+  });
 });
