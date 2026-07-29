@@ -13,9 +13,17 @@ export const TOOL_NAMES = [
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 export const RecoverySchema = z.object({
-  failedConstraint: z.enum(["maxPrice", "distance", "date", "rating", "none"]),
+  failedConstraint: z.enum(["maxPrice", "distance", "date", "rating", "noMatch"]),
   closestPriceCents: CentsSchema.optional(),
   chips: z.array(z.string()).min(1),
+}).superRefine((val, ctx) => {
+  if (val.failedConstraint === "maxPrice" && val.closestPriceCents === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "A maxPrice recovery must name the closest available price (CUS-C-08)",
+      path: ["closestPriceCents"],
+    });
+  }
 });
 export type Recovery = z.infer<typeof RecoverySchema>;
 
@@ -66,7 +74,7 @@ export const GetAvailabilityResultSchema = z.object({
 export const AddToCartToolInputSchema = z.object({
   productId: IdSchema,
   variant: z.string().default("Graphite"),
-  quantity: z.number().int().positive().default(1),
+  qty: z.number().int().positive().default(1),
 });
 export const AddToCartToolResultSchema = z.object({
   cart: CartSchema,
