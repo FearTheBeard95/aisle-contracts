@@ -3,7 +3,8 @@ import {
   ProductCardSchema, ServiceCardSchema, OrderStageSchema, BookingStatusSchema,
   ApiErrorSchema, CartLineSchema, SignUpSchema, VerifyCodeSchema, MerchantSignUpSchema,
   ApprovalStatusSchema, SlotStateSchema, RepeatSchema, DayHoursSchema, SubscriptionSchema,
-  ConversationTurnSchema, PlanLimitDetailsSchema,
+  ConversationTurnSchema, PlanLimitDetailsSchema, NotificationSchema, SavedSearchSchema,
+  FavoriteSchema,
 } from "../src/index.js";
 
 describe("dto schemas", () => {
@@ -189,5 +190,67 @@ describe("PlanLimitDetailsSchema", () => {
     expect(() => PlanLimitDetailsSchema.parse({
       kind: "bookingCap", cap: 20, plan: "counter", requiredPlan: "aisle",
     })).toThrow();
+  });
+});
+
+describe("NotificationSchema", () => {
+  const validNotification = {
+    id: "n1", kind: "Order" as const, title: "Order placed", sub: "AO-1001",
+    when: "2m ago", createdAt: "2026-08-01T20:30:00.000Z", read: false,
+  };
+
+  it("accepts a complete valid notification", () => {
+    expect(NotificationSchema.parse(validNotification).read).toBe(false);
+  });
+
+  it("rejects an unknown notification kind", () => {
+    expect(() => NotificationSchema.parse({ ...validNotification, kind: "Promo" })).toThrow();
+  });
+
+  it("rejects a non-ISO createdAt", () => {
+    expect(() => NotificationSchema.parse({ ...validNotification, createdAt: "yesterday" })).toThrow();
+  });
+});
+
+describe("SavedSearchSchema", () => {
+  const validSavedSearch = {
+    id: "s1", query: "task chair", maxPriceCents: 30000, active: true,
+    createdAt: "2026-08-01T20:30:00.000Z",
+  };
+
+  it("accepts a null maxPriceCents (no price constraint)", () => {
+    expect(SavedSearchSchema.parse({ ...validSavedSearch, maxPriceCents: null }).maxPriceCents).toBeNull();
+  });
+
+  it("rejects a float maxPriceCents", () => {
+    expect(() => SavedSearchSchema.parse({ ...validSavedSearch, maxPriceCents: 300.5 })).toThrow();
+  });
+
+  // CONCERN: SavedSearchSchema.query is `z.string()` with no minimum length, so an
+  // empty query currently parses successfully. This pins the schema's actual
+  // behaviour as written in src/dto/activity.ts rather than the (unverified)
+  // assumption that empty queries are rejected — flagged to the coordinator
+  // as a possible gap rather than changed silently.
+  it("currently accepts an empty query (not rejected — flagged as a possible gap)", () => {
+    expect(SavedSearchSchema.parse({ ...validSavedSearch, query: "" }).query).toBe("");
+  });
+});
+
+describe("FavoriteSchema", () => {
+  const validFavorite = {
+    id: "f1", kind: "product" as const, itemId: "aro", name: "Aro Task Chair",
+    image: "chair", priceCents: 24800, rating: 4.6, meta: "Mesh back",
+  };
+
+  it("accepts a complete valid favorite", () => {
+    expect(FavoriteSchema.parse(validFavorite).itemId).toBe("aro");
+  });
+
+  it("rejects an unknown favorite kind", () => {
+    expect(() => FavoriteSchema.parse({ ...validFavorite, kind: "merchant" })).toThrow();
+  });
+
+  it("rejects an empty image key", () => {
+    expect(() => FavoriteSchema.parse({ ...validFavorite, image: "" })).toThrow();
   });
 });
