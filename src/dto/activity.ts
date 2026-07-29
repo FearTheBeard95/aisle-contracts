@@ -14,7 +14,7 @@ export type NotificationDto = z.infer<typeof NotificationSchema>;
 
 export const SavedSearchSchema = z.object({
   id: IdSchema,
-  query: z.string(),
+  query: z.string().min(1),
   maxPriceCents: CentsSchema.nullable(),
   active: z.boolean(),
   createdAt: IsoDateSchema,

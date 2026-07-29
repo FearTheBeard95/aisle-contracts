@@ -226,13 +226,8 @@ describe("SavedSearchSchema", () => {
     expect(() => SavedSearchSchema.parse({ ...validSavedSearch, maxPriceCents: 300.5 })).toThrow();
   });
 
-  // CONCERN: SavedSearchSchema.query is `z.string()` with no minimum length, so an
-  // empty query currently parses successfully. This pins the schema's actual
-  // behaviour as written in src/dto/activity.ts rather than the (unverified)
-  // assumption that empty queries are rejected — flagged to the coordinator
-  // as a possible gap rather than changed silently.
-  it("currently accepts an empty query (not rejected — flagged as a possible gap)", () => {
-    expect(SavedSearchSchema.parse({ ...validSavedSearch, query: "" }).query).toBe("");
+  it("rejects an empty query — an unconstrained watch would match the whole catalogue", () => {
+    expect(() => SavedSearchSchema.parse({ ...validSavedSearch, query: "" })).toThrow();
   });
 });
 
