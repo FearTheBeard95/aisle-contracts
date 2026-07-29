@@ -14,6 +14,11 @@ describe("classifyIntent", () => {
     expect(classifyIntent("barber near me")).toBe("service");
   });
 
+  it("classifies hairdresser as service", () => {
+    expect(classifyIntent("hairdresser")).toBe("service");
+    expect(classifyIntent("I need a hairdresser")).toBe("service");
+  });
+
   it("never mistakes chair for hair", () => {
     expect(classifyIntent("chair")).toBe("product");
     expect(classifyIntent("chairs")).toBe("product");
@@ -47,5 +52,20 @@ describe("parsePriceConstraint", () => {
 
   it("returns null when no constraint is present", () => {
     expect(parsePriceConstraint("a nice chair")).toBeNull();
+  });
+
+  it("handles comma-formatted prices", () => {
+    expect(parsePriceConstraint("under $1,200")).toBe(120000);
+    expect(parsePriceConstraint("less than $2,500")).toBe(250000);
+  });
+
+  it("handles decimal prices correctly", () => {
+    expect(parsePriceConstraint("under $49.99")).toBe(4999);
+    expect(parsePriceConstraint("under $3.50")).toBe(350);
+    expect(parsePriceConstraint("under $300.00")).toBe(30000);
+  });
+
+  it("rounds half-up when more than two decimal places", () => {
+    expect(parsePriceConstraint("under $9.999")).toBe(1000);
   });
 });
