@@ -17,6 +17,7 @@ export const MerchantSchema = z.object({
   matchPhrases: z.array(z.string()),
   storefrontLive: z.boolean(),
   approvalStatus: ApprovalStatusSchema,
+  offerType: z.enum(["services", "products", "both"]).default("services"),
 });
 export type MerchantDto = z.infer<typeof MerchantSchema>;
 
