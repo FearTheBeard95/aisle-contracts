@@ -1,4 +1,4 @@
-export const CONTRACTS_VERSION = "0.1.2";
+export const CONTRACTS_VERSION = "0.1.3";
 export * from "./tokens.js";
 export * from "./intent.js";
 export * from "./plans.js";
