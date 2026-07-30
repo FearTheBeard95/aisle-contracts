@@ -4,6 +4,7 @@ export const ApiErrorCodeSchema = z.enum([
   "VALIDATION",        // 400 — request body/query failed schema validation
   "UNAUTHENTICATED",   // 401 — no or invalid session
   "FORBIDDEN",         // 403 — authenticated but not permitted
+  "EMAIL_UNVERIFIED",  // 403 — session is valid but the email was never verified
   "PLAN_LIMIT",        // 403 — entitlement gate; details carries plan info
   "NOT_FOUND",         // 404
   "CONFLICT",          // 409 — e.g. slot already held, email already registered
