@@ -3,7 +3,7 @@ import { CONTRACTS_VERSION, ApiErrorCodeSchema, ApiErrorSchema } from "../src/in
 
 describe("package", () => {
   it("exports a version", () => {
-    expect(CONTRACTS_VERSION).toBe("0.2.1");
+    expect(CONTRACTS_VERSION).toBe("0.2.2");
   });
 });
 

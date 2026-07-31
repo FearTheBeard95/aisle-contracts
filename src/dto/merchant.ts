@@ -111,6 +111,13 @@ export type StatDeltaDto = z.infer<typeof StatDeltaSchema>;
 export const SeedServiceSchema = z.object({
   key: z.string().min(1),
   name: z.string(),
+  /**
+   * One line of prose the wizard renders after the duration, as
+   * `"30 min · Clipper or scissor cut, wash included"`. Always present —
+   * a seed with nothing to say about itself is a row with a dangling
+   * separator, so the empty string is the floor, not the absence of the field.
+   */
+  description: z.string(),
   priceCents: CentsSchema,
   durationMinutes: z.number().int().positive(),
 });

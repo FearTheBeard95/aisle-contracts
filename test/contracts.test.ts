@@ -25,7 +25,8 @@ describe("contracts v0.2.0", () => {
 
   it("describes a seed service for onboarding step 2", () => {
     expect(SeedServiceSchema.parse({
-      key: "cut", name: "Cut", priceCents: 4500, durationMinutes: 45,
+      key: "cut", name: "Cut", description: "A classic cut",
+      priceCents: 4500, durationMinutes: 45,
     }).key).toBe("cut");
   });
 
@@ -57,6 +58,24 @@ describe("contracts v0.2.1", () => {
   });
 
   it("pins its own version", () => {
-    expect(CONTRACTS_VERSION).toBe("0.2.1");
+    expect(CONTRACTS_VERSION).toBe("0.2.2");
+  });
+});
+
+describe("contracts v0.2.2", () => {
+  /**
+   * The wizard's step-2 row renders `duration · description`, so a seed with no
+   * description cannot be rendered at all. The field was missing from v0.2.1.
+   */
+  it("requires a seed service to carry the description the step-2 row renders", () => {
+    expect(SeedServiceSchema.safeParse({
+      key: "cut", name: "Haircut", priceCents: 3500, durationMinutes: 30,
+    }).success).toBe(false);
+
+    const seed = SeedServiceSchema.parse({
+      key: "cut", name: "Haircut", description: "Clipper or scissor cut, wash included",
+      priceCents: 3500, durationMinutes: 30,
+    });
+    expect(seed.description).toBe("Clipper or scissor cut, wash included");
   });
 });
