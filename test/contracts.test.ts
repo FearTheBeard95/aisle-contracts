@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   CONTRACTS_VERSION, MerchantServiceSchema, PayoutSummarySchema, SeedServiceSchema,
+  OverviewTodayRowSchema,
 } from "../src/index.js";
 
 describe("contracts v0.2.0", () => {
@@ -28,7 +29,34 @@ describe("contracts v0.2.0", () => {
     }).key).toBe("cut");
   });
 
+});
+
+describe("contracts v0.2.1", () => {
+  it("represents an open slot on the Overview today rail with a null reference and amount", () => {
+    const row = OverviewTodayRowSchema.parse({
+      id: "row_1", startsAt: "2026-07-31T17:30:00.000Z", kind: "open_slot",
+      who: "Open", what: "Bookable", status: "open", reference: null, amountCents: null,
+    });
+    expect(row.reference).toBeNull();
+    expect(row.amountCents).toBeNull();
+  });
+
+  it("distinguishes a zero-amount row from a no-amount row", () => {
+    const zero = OverviewTodayRowSchema.parse({
+      id: "row_2", startsAt: "2026-07-31T18:00:00.000Z", kind: "order",
+      who: "J. Alvarez", what: "Comp'd order", status: "delivered",
+      reference: "ord_1", amountCents: 0,
+    });
+    const none = OverviewTodayRowSchema.parse({
+      id: "row_3", startsAt: "2026-07-31T18:30:00.000Z", kind: "open_slot",
+      who: "Open", what: "Bookable", status: "open", reference: null, amountCents: null,
+    });
+    expect(zero.amountCents).toBe(0);
+    expect(none.amountCents).toBeNull();
+    expect(zero.amountCents).not.toBeNull();
+  });
+
   it("pins its own version", () => {
-    expect(CONTRACTS_VERSION).toBe("0.2.0");
+    expect(CONTRACTS_VERSION).toBe("0.2.1");
   });
 });

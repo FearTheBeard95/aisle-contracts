@@ -87,12 +87,16 @@ export type PayoutSummaryDto = z.infer<typeof PayoutSummarySchema>;
 /** A row of the Overview "today" rail. */
 export const OverviewTodayRowSchema = z.object({
   id: IdSchema,
-  time: IsoDateSchema,
-  reference: z.string(),
+  /** The instant the booking, order or open slot starts. */
+  startsAt: IsoDateSchema,
+  kind: z.enum(["booking", "order", "open_slot"]),
   who: z.string(),
   what: z.string(),
   status: z.string(),
-  amountCents: CentsSchema,
+  /** Null on an open slot — there is no reference until something is booked. */
+  reference: z.string().nullable(),
+  /** Null on an open slot. Null means "no amount applies", never "zero". */
+  amountCents: CentsSchema.nullable(),
 });
 export type OverviewTodayRowDto = z.infer<typeof OverviewTodayRowSchema>;
 
