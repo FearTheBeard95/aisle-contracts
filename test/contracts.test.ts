@@ -1,0 +1,34 @@
+import { describe, it, expect } from "vitest";
+import {
+  CONTRACTS_VERSION, MerchantServiceSchema, PayoutSummarySchema, SeedServiceSchema,
+} from "../src/index.js";
+
+describe("contracts v0.2.0", () => {
+  it("marks a plan-suspended service distinctly from a merchant-switched-off one", () => {
+    const row = MerchantServiceSchema.parse({
+      id: "svc_1", name: "Cut", description: "A classic cut", durationMinutes: 45,
+      priceCents: 4500, bookable: false, planSuspended: true,
+    });
+    expect(row.planSuspended).toBe(true);
+  });
+
+  it("carries a payout summary with next payout, fee and a ledger", () => {
+    const s = PayoutSummarySchema.parse({
+      bank: "Chase ···· 8891", schedule: "weekly",
+      nextPayoutCents: 128450, nextPayoutAt: "2026-07-27T00:00:00.000Z",
+      feeBps: 240, feeFixedCents: 30,
+      ledger: [{ id: "po_1", paidAt: "2026-07-20T00:00:00.000Z", amountCents: 98200, status: "paid" }],
+    });
+    expect(s.ledger[0]!.amountCents).toBe(98200);
+  });
+
+  it("describes a seed service for onboarding step 2", () => {
+    expect(SeedServiceSchema.parse({
+      key: "cut", name: "Cut", priceCents: 4500, durationMinutes: 45,
+    }).key).toBe("cut");
+  });
+
+  it("pins its own version", () => {
+    expect(CONTRACTS_VERSION).toBe("0.2.0");
+  });
+});

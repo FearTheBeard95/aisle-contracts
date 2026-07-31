@@ -10,6 +10,8 @@ export const CartLineSchema = z.object({
   unitPriceCents: CentsSchema,
   lineTotalCents: CentsSchema,
   image: ImageKeySchema,
+  /** The product went away (unlisted, plan-suspended, or out of stock) after it was added. */
+  unavailable: z.boolean().default(false),
 });
 export type CartLine = z.infer<typeof CartLineSchema>;
 
