@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   CONTRACTS_VERSION, MerchantServiceSchema, PayoutSummarySchema, SeedServiceSchema,
-  OverviewTodayRowSchema,
+  OverviewTodayRowSchema, MerchantSchema, EntitlementSchema, SubscriptionSchema,
+  SubscriptionResponseSchema,
 } from "../src/index.js";
 
 describe("contracts v0.2.0", () => {
@@ -58,7 +59,7 @@ describe("contracts v0.2.1", () => {
   });
 
   it("pins its own version", () => {
-    expect(CONTRACTS_VERSION).toBe("0.2.2");
+    expect(CONTRACTS_VERSION).toBe("0.2.3");
   });
 });
 
@@ -77,5 +78,102 @@ describe("contracts v0.2.2", () => {
       priceCents: 3500, durationMinutes: 30,
     });
     expect(seed.description).toBe("Clipper or scissor cut, wash included");
+  });
+});
+
+describe("contracts v0.2.3", () => {
+  const merchant = {
+    id: "m_1", name: "Bloom", legal: "Bloom LLC", category: "Salon",
+    phone: "+15550100", email: "hi@bloom.test",
+    addrLine: "1 Main St", addrCity: "Austin",
+    description: "A salon", matchPhrases: ["haircut"],
+    storefrontLive: false, approvalStatus: "approved" as const,
+    offerType: "services" as const, onboardingComplete: false,
+  };
+
+  const subscription = {
+    plan: "aisle" as const, cycle: "monthly" as const,
+    periodStart: "2026-08-01T00:00:00.000Z", periodEnd: "2026-09-01T00:00:00.000Z",
+    usage: { bookingsThisPeriod: 3, services: 2, team: 1 },
+    pendingPlan: null, cardBrand: "Visa", cardLast4: "4242", invoices: [],
+  };
+
+  /**
+   * The console has to route a merchant who never finished the wizard back
+   * into it. Without this field the only readings available were "storefront
+   * is not live" (also true of a finished merchant who paused) and "there are
+   * no services" (also true of a products-only merchant).
+   */
+  it("tells a client whether onboarding is finished", () => {
+    expect(MerchantSchema.parse(merchant).onboardingComplete).toBe(false);
+    expect(MerchantSchema.parse({ ...merchant, onboardingComplete: true }).onboardingComplete)
+      .toBe(true);
+  });
+
+  it("requires onboardingComplete rather than defaulting it to false", () => {
+    const { onboardingComplete: _omitted, ...withoutIt } = merchant;
+    expect(MerchantSchema.safeParse(withoutIt).success).toBe(false);
+  });
+
+  it("represents an unlimited entitlement as a null cap plus unlimited: true", () => {
+    const unlimited = EntitlementSchema.parse({
+      limit: "services", used: 12, cap: null, unlimited: true,
+    });
+    expect(unlimited.cap).toBeNull();
+    expect(unlimited.unlimited).toBe(true);
+
+    const capped = EntitlementSchema.parse({
+      limit: "team", used: 1, cap: 6, unlimited: false,
+    });
+    expect(capped.cap).toBe(6);
+    expect(capped.unlimited).toBe(false);
+  });
+
+  it("rejects an entitlement for a limit the plan matrix does not have", () => {
+    expect(EntitlementSchema.safeParse({
+      limit: "storefronts", used: 0, cap: 1, unlimited: false,
+    }).success).toBe(false);
+  });
+
+  it("parses the full GET /merchant/subscription body, entitlements and all", () => {
+    const body = SubscriptionResponseSchema.parse({
+      ...subscription,
+      entitlements: [
+        { limit: "bookingsPerMonth", used: 3, cap: null, unlimited: true },
+        { limit: "services", used: 2, cap: null, unlimited: true },
+        { limit: "team", used: 1, cap: 6, unlimited: false },
+        { limit: "locations", used: 1, cap: 1, unlimited: false },
+      ],
+      feeBps: 200,
+      noPaidPlacement: "Placement is never for sale — …",
+      pendingPlanEffect: null,
+    });
+    expect(body.feeBps).toBe(200);
+    expect(body.entitlements[0]!.unlimited).toBe(true);
+    expect(body.pendingPlanEffect).toBeNull();
+    // The nested subscription half is unchanged, so the plan-change endpoints
+    // that carry a bare SubscriptionDto still validate against it.
+    expect(SubscriptionSchema.parse(subscription).plan).toBe("aisle");
+  });
+
+  it("carries what a pending downgrade will suspend", () => {
+    const body = SubscriptionResponseSchema.parse({
+      ...subscription,
+      pendingPlan: "counter",
+      entitlements: [],
+      feeBps: 200,
+      noPaidPlacement: "…",
+      pendingPlanEffect: { servicesSuspended: 3, productsSuspended: 7 },
+    });
+    expect(body.pendingPlanEffect).toEqual({ servicesSuspended: 3, productsSuspended: 7 });
+  });
+
+  /** Older consumers parse the narrower schema; extra keys are stripped, not fatal. */
+  it("stays parseable by the unextended SubscriptionSchema", () => {
+    const parsed = SubscriptionSchema.parse({
+      ...subscription, entitlements: [], feeBps: 200,
+      noPaidPlacement: "…", pendingPlanEffect: null,
+    });
+    expect(parsed.plan).toBe("aisle");
   });
 });

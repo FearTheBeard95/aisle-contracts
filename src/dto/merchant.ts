@@ -18,6 +18,18 @@ export const MerchantSchema = z.object({
   storefrontLive: z.boolean(),
   approvalStatus: ApprovalStatusSchema,
   offerType: z.enum(["services", "products", "both"]).default("services"),
+  /**
+   * True once the merchant has submitted the onboarding wizard.
+   *
+   * REQUIRED, NOT DEFAULTED, deliberately. `.default(false)` would make the
+   * field optional on input but required on `z.infer`, so a consumer that
+   * builds a `MerchantDto` would still be forced to supply it while the
+   * schema quietly accepted payloads that omitted it — the field would then
+   * read `false` for a merchant who had in fact finished, and the console
+   * would route them back into the wizard. The server always knows the
+   * answer (`merchants.onboarding_complete`), so the wire always carries it.
+   */
+  onboardingComplete: z.boolean(),
 });
 export type MerchantDto = z.infer<typeof MerchantSchema>;
 
