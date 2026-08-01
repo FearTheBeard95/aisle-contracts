@@ -3,6 +3,7 @@ import {
   CONTRACTS_VERSION, MerchantServiceSchema, PayoutSummarySchema, SeedServiceSchema,
   OverviewTodayRowSchema, MerchantSchema, EntitlementSchema, SubscriptionSchema,
   SubscriptionResponseSchema, BookingSchema, MerchantBookingSchema, type BookingDto,
+  MerchantProductSchema, OrderSchema, MerchantOrderSchema, type MerchantOrderDto,
 } from "../src/index.js";
 
 describe("contracts v0.2.0", () => {
@@ -59,7 +60,7 @@ describe("contracts v0.2.1", () => {
   });
 
   it("pins its own version", () => {
-    expect(CONTRACTS_VERSION).toBe("0.2.4");
+    expect(CONTRACTS_VERSION).toBe("0.2.5");
   });
 });
 
@@ -222,5 +223,93 @@ describe("MerchantBookingSchema (v0.2.4)", () => {
     });
     const asBooking: BookingDto = row;
     expect(BookingSchema.safeParse(asBooking).success).toBe(true);
+  });
+});
+
+describe("MerchantProductSchema (v0.2.5)", () => {
+  const product = {
+    id: "prd_1", name: "Matte Clay", sku: "MC-01", priceCents: 1800,
+    stock: 12, listed: true, image: "photo",
+  };
+
+  it("carries the search inputs the create route has always accepted", () => {
+    const row = MerchantProductSchema.parse({
+      ...product,
+      description: "Firm hold, matte finish, washes out clean.",
+      category: "Hair", material: "Kaolin clay", variants: ["50ml", "100ml"],
+    });
+    expect(row.description).toBe("Firm hold, matte finish, washes out clean.");
+    expect(row.category).toBe("Hair");
+    expect(row.material).toBe("Kaolin clay");
+    expect(row.variants).toEqual(["50ml", "100ml"]);
+  });
+
+  /**
+   * Required, not optional. The columns are NOT NULL with `''` / `'[]'`
+   * defaults, so the server always has an answer and the wire always carries
+   * it; an optional field would let a client distinguish "unset" from "empty"
+   * when the database cannot.
+   */
+  it("requires all four — a row that omits them is not a merchant product", () => {
+    expect(MerchantProductSchema.safeParse(product).success).toBe(false);
+    expect(MerchantProductSchema.safeParse({
+      ...product, description: "", category: "", material: "", variants: [],
+    }).success).toBe(true);
+  });
+});
+
+describe("MerchantOrderSchema (v0.2.5)", () => {
+  const order = {
+    id: "ord_1", reference: "AO-1001",
+    lines: [{
+      id: "ol_1", productId: "prd_1", name: "Matte Clay", variant: "50ml",
+      qty: 1, unitPriceCents: 1800, lineTotalCents: 1800, image: "photo",
+      unavailable: false,
+    }],
+    subtotalCents: 1800, shippingCents: 0, totalCents: 1800,
+    stage: "placed" as const,
+    steps: [{ stage: "placed" as const, reached: true, at: "2026-08-01T09:00:00.000Z" }],
+    placedAt: "2026-08-01T09:00:00.000Z",
+    deliverToName: "Ada Okafor", deliverToLine: "12 Bold St", deliverToCity: "Liverpool",
+    cardBrand: "Visa", cardLast4: "4412",
+  };
+
+  it("has no card fields on the shape at all", () => {
+    expect(Object.keys(MerchantOrderSchema.shape)).not.toContain("cardBrand");
+    expect(Object.keys(MerchantOrderSchema.shape)).not.toContain("cardLast4");
+  });
+
+  it("strips the card off an order parsed through it", () => {
+    const row = MerchantOrderSchema.parse(order) as Record<string, unknown>;
+    expect(row.cardBrand).toBeUndefined();
+    expect(row.cardLast4).toBeUndefined();
+    // Everything the merchant actually fulfils against survives.
+    expect(row.reference).toBe("AO-1001");
+    expect(row.deliverToCity).toBe("Liverpool");
+    expect((row.lines as unknown[]).length).toBe(1);
+  });
+
+  /**
+   * The inverse of the bookings split: the customer-facing schema did not
+   * narrow. A customer is entitled to see which of their own cards paid.
+   */
+  it("leaves OrderSchema carrying the card", () => {
+    const parsed = OrderSchema.parse(order);
+    expect(parsed.cardBrand).toBe("Visa");
+    expect(parsed.cardLast4).toBe("4412");
+  });
+
+  /**
+   * Assignability runs the opposite way from bookings — omit removes fields,
+   * so an OrderDto satisfies MerchantOrderDto and not the reverse. The
+   * console's in-place row replacement only needs the list route and the
+   * advance route to agree, and both return MerchantOrderDto.
+   */
+  it("is what an advance response can be assigned into a list of", () => {
+    const row: MerchantOrderDto = MerchantOrderSchema.parse(order);
+    const list: MerchantOrderDto[] = [row];
+    list[0] = MerchantOrderSchema.parse({ ...order, stage: "packed" });
+    expect(list[0]!.stage).toBe("packed");
+    expect(MerchantOrderSchema.safeParse(list[0]).success).toBe(true);
   });
 });

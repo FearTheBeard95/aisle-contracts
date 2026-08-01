@@ -54,6 +54,43 @@ export const MerchantServiceSchema = z.object({
 });
 export type MerchantServiceDto = z.infer<typeof MerchantServiceSchema>;
 
+/**
+ * What the merchant console's Products tab reads, and what every
+ * `/merchant/products*` route returns.
+ *
+ * `description`, `category`, `material` and `variants` (v0.2.5) ARE NOT
+ * DISPLAY DECORATION. `POST /merchant/products` has always accepted all four
+ * and written them to the row, but nothing ever read them back and `PATCH`
+ * ignored them, so a product created through the console was stuck with
+ * whatever the create call sent — in practice the empty string, because the
+ * console has no control for any of them. Three of the four are customer-
+ * facing search inputs on the very marketplace this catalogue exists to be
+ * found on:
+ *
+ *  - `description` — free-text matched by product search, and quoted verbatim
+ *    on the product detail the agent reads out. Empty means the product
+ *    matches no keyword that isn't already in its name, and the agent has
+ *    nothing to say about it.
+ *  - `category` — the one field product search filters on exactly. Empty means
+ *    the product is absent from every category-filtered result, permanently.
+ *  - `material` — carried on `ProductCardSchema` and rendered on the card, but
+ *    NOT matched by search. Included because it is customer-facing, because
+ *    create already accepts it, and because a field that can be written once
+ *    and never read or corrected is the exact defect this bump exists to
+ *    close — not because it changes what search returns.
+ *  - `variants` — the buy options on the product detail, and the source of the
+ *    `variant` string a cart line and then an order line carries. See the
+ *    server's `updateProduct` for why editing it is guarded rather than free:
+ *    nothing in the database joins a cart line back to this array, so removing
+ *    or renaming an entry someone is holding does not fail — it silently
+ *    leaves them checking out a variant the merchant no longer sells.
+ *
+ * All four are REQUIRED on the wire and not `.optional()`: the columns are
+ * `NOT NULL DEFAULT ''` / `DEFAULT '[]'`, so the server always has an answer,
+ * and "the merchant has not written a description" is the empty string, not an
+ * absent field. An optional field would let a client tell those apart when the
+ * server cannot.
+ */
 export const MerchantProductSchema = z.object({
   id: IdSchema,
   name: z.string(),
@@ -62,6 +99,14 @@ export const MerchantProductSchema = z.object({
   stock: z.number().int().nonnegative(),
   listed: z.boolean(),
   image: ImageKeySchema,
+  /** Free-text matched by product search; quoted on the agent's product detail. */
+  description: z.string(),
+  /** The field product search filters on exactly. Empty = in no category. */
+  category: z.string(),
+  /** Rendered on the product card. Not a search input. */
+  material: z.string(),
+  /** The buy options; each is the `variant` string a cart and order line carries. */
+  variants: z.array(z.string()),
   /** True when a plan downgrade switched this off — different copy, different remedy. */
   planSuspended: z.boolean().default(false),
 });
