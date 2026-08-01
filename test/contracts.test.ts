@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   CONTRACTS_VERSION, MerchantServiceSchema, PayoutSummarySchema, SeedServiceSchema,
   OverviewTodayRowSchema, MerchantSchema, EntitlementSchema, SubscriptionSchema,
-  SubscriptionResponseSchema,
+  SubscriptionResponseSchema, BookingSchema, MerchantBookingSchema, type BookingDto,
 } from "../src/index.js";
 
 describe("contracts v0.2.0", () => {
@@ -59,7 +59,7 @@ describe("contracts v0.2.1", () => {
   });
 
   it("pins its own version", () => {
-    expect(CONTRACTS_VERSION).toBe("0.2.3");
+    expect(CONTRACTS_VERSION).toBe("0.2.4");
   });
 });
 
@@ -175,5 +175,52 @@ describe("contracts v0.2.3", () => {
       noPaidPlacement: "…", pendingPlanEffect: null,
     });
     expect(parsed.plan).toBe("aisle");
+  });
+});
+
+describe("MerchantBookingSchema (v0.2.4)", () => {
+  const booking = {
+    id: "bk_1", reference: "AI-4820",
+    merchantId: "mer_1", merchantName: "Fade Room", merchantImage: "shop",
+    addressLine: "12 Bold St", addressCity: "Liverpool", distanceMiles: 0,
+    serviceId: "svc_1", serviceName: "Cut + Beard",
+    addOns: [], repeat: "once" as const,
+    slotStartsAt: "2026-08-01T13:30:00.000Z", slotLabel: "1:30",
+    dayLabel: "Sat, Aug 1", status: "pending" as const,
+    holdExpiresAt: null, totalCents: 5000,
+  };
+
+  it("names the customer on the merchant's queue", () => {
+    const row = MerchantBookingSchema.parse({
+      ...booking, customerId: "cus_1", customerName: "Ada Okafor",
+    });
+    expect(row.customerName).toBe("Ada Okafor");
+    expect(row.customerId).toBe("cus_1");
+  });
+
+  it("requires the customer fields — a bare BookingDto is not a merchant row", () => {
+    expect(MerchantBookingSchema.safeParse(booking).success).toBe(false);
+  });
+
+  /**
+   * The whole point of the split: the customer-facing schema did not learn
+   * about customers. Parsing a merchant row through it strips them.
+   */
+  it("leaves BookingSchema with no customer identity on it", () => {
+    expect(Object.keys(BookingSchema.shape)).not.toContain("customerName");
+    expect(Object.keys(BookingSchema.shape)).not.toContain("customerId");
+    const stripped = BookingSchema.parse({
+      ...booking, customerId: "cus_1", customerName: "Ada Okafor",
+    }) as Record<string, unknown>;
+    expect(stripped.customerName).toBeUndefined();
+    expect(stripped.customerId).toBeUndefined();
+  });
+
+  it("stays assignable to BookingDto, so a row replaced in place still validates", () => {
+    const row = MerchantBookingSchema.parse({
+      ...booking, status: "confirmed", customerId: "cus_1", customerName: "Ada Okafor",
+    });
+    const asBooking: BookingDto = row;
+    expect(BookingSchema.safeParse(asBooking).success).toBe(true);
   });
 });
